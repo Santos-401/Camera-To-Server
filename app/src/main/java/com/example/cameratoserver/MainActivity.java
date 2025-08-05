@@ -33,21 +33,12 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     private static final int REQUEST_CODE_PERMISSIONS = 10;
     private static final String[] REQUIRED_PERMISSIONS = new String[]{Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO};
-    private final String UPLOAD_URL = "http://example.com/upload"; // TODO: サーバーのURLに書き換えてください
 
     private PreviewView previewView;
     private Button startButton;
@@ -155,11 +146,9 @@ public class MainActivity extends AppCompatActivity {
                             Toast.makeText(MainActivity.this, "Recording started", Toast.LENGTH_SHORT).show();
                         } else if (videoRecordEvent instanceof VideoRecordEvent.Finalize) {
                             if (!((VideoRecordEvent.Finalize) videoRecordEvent).hasError()) {
-                                String msg = "Video capture succeeded: " + ((VideoRecordEvent.Finalize) videoRecordEvent).getOutputResults().getOutputUri();
-                                Toast.makeText(getBaseContext(), msg, Toast.LENGTH_SHORT).show();
-                                Log.d(TAG, msg);
-                                File file = new File(PathUtil.getPath(MainActivity.this, ((VideoRecordEvent.Finalize) videoRecordEvent).getOutputResults().getOutputUri()));
-                                uploadVideo(file);
+                                String msg = "Video saved to Movies/CameraToServer. Connect to PC via USB to transfer.";
+                                Toast.makeText(getBaseContext(), msg, Toast.LENGTH_LONG).show();
+                                Log.d(TAG, "Video capture succeeded: " + ((VideoRecordEvent.Finalize) videoRecordEvent).getOutputResults().getOutputUri());
                             } else {
                                 if (activeRecording != null) {
                                     activeRecording.close();
@@ -173,41 +162,6 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 });
-    }
-
-
-    private void uploadVideo(File videoFile) {
-        OkHttpClient client = new OkHttpClient();
-
-        RequestBody requestBody = new MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart("video", videoFile.getName(),
-                        RequestBody.create(videoFile, MediaType.parse("video/mp4")))
-                .build();
-
-        Request request = new Request.Builder()
-                .url(UPLOAD_URL)
-                .post(requestBody)
-                .build();
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                Log.e(TAG, "Upload failed", e);
-                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Upload failed: " + e.getMessage(), Toast.LENGTH_SHORT).show());
-            }
-
-            @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                if (response.isSuccessful()) {
-                    Log.d(TAG, "Upload successful");
-                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "Upload successful", Toast.LENGTH_SHORT).show());
-                } else {
-                    Log.e(TAG, "Upload failed: " + response.body().string());
-                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "Upload failed: " + response.code(), Toast.LENGTH_SHORT).show());
-                }
-            }
-        });
     }
 
     private void updateUI(boolean isRecording) {
